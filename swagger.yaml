@@ -1,0 +1,157 @@
+openapi: 3.0.3
+info:
+  title: StarEast Commerce API
+  version: 1.0.0
+  description: Simple in-memory e-commerce REST API with JWT auth and checkout rules.
+servers:
+  - url: http://localhost:3000
+paths:
+  /healthcheck:
+    get:
+      summary: Healthcheck
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+  /register:
+    post:
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email, password]
+              properties:
+                name:
+                  type: string
+                  example: Jane Doe
+                email:
+                  type: string
+                  example: jane@example.com
+                password:
+                  type: string
+                  example: password123
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: "#/components/schemas/PublicUser"
+        "400":
+          description: Bad request
+  /login:
+    post:
+      summary: Login and get JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  example: alice@example.com
+                password:
+                  type: string
+                  example: password123
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                  user:
+                    $ref: "#/components/schemas/PublicUser"
+        "401":
+          description: Unauthorized
+  /checkout:
+    post:
+      summary: Checkout (authenticated)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items, paymentMethod]
+              properties:
+                paymentMethod:
+                  type: string
+                  description: cash or credit
+                  example: cash
+                items:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required: [productId, quantity]
+                    properties:
+                      productId:
+                        type: string
+                        example: p1
+                      quantity:
+                        type: number
+                        example: 2
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutResponse"
+        "401":
+          description: Unauthorized
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    PublicUser:
+      type: object
+      properties:
+        id: { type: string, example: u1 }
+        name: { type: string, example: Alice Johnson }
+        email: { type: string, example: alice@example.com }
+    CheckoutItem:
+      type: object
+      properties:
+        productId: { type: string, example: p1 }
+        name: { type: string, example: T-Shirt }
+        unitPrice: { type: number, example: 20 }
+        quantity: { type: number, example: 2 }
+        lineTotal: { type: number, example: 40 }
+    CheckoutResponse:
+      type: object
+      properties:
+        paymentMethod: { type: string, example: cash }
+        discountRate: { type: number, example: 0.1 }
+        subtotal: { type: number, example: 40 }
+        discount: { type: number, example: 4 }
+        total: { type: number, example: 36 }
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CheckoutItem"
